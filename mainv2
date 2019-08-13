@@ -1,0 +1,65 @@
+void Main()
+{
+     sw = new Stopwatch();
+     sw.Start();
+
+     long lastInputPulseAt = 0;
+     long inputPulsePeriod = long.MaxValue;
+     long nextOutputPulseAt = long.MaxValue;
+     
+     bool firstPulse = true;
+     
+     while (true)
+     {
+          var millis = sw.ElapsedMilliseconds;
+          
+          if (HandlePulse())
+          {
+                Console.WriteLine("IN");
+                
+                var currentInputPulseAt = millis;
+                inputPulsePeriod = currentInputPulseAt - lastInputPulseAt;
+                lastInputPulseAt = currentInputPulseAt;
+
+                if (inputPulsePeriod > 250)
+                {
+                     Console.WriteLine("Going back to normal");
+                     break;
+                }
+
+                // Ensure first pulse is passed immediately
+                if (firstPulse)
+                {
+                     nextOutputPulseAt = millis;
+                     firstPulse = false;
+                }
+          }
+          
+          if (millis >= nextOutputPulseAt)
+          {
+                Console.WriteLine("OUT");
+                nextOutputPulseAt = millis + 250;
+          }
+          
+          // May want to add a delay here (if needed)
+     }
+     
+}
+
+bool _pulsePrev = false;
+
+public bool HandlePulse()
+{
+     bool result = false;
+     bool pulseNow = IsPinLow();
+     result = pulseNow && !_pulsePrev;
+     _pulsePrev = pulseNow;
+     return result;
+}
+
+
+public bool IsPinLow()
+{
+     var m = sw.ElapsedMilliseconds % 200; // assume input pulses every 1/5 sec
+     return m >= 0 && m <= 50;
+}
