@@ -28,6 +28,12 @@ unsigned long endTime;
 unsigned long duration;
 byte timerRunning;
 
+     unsinged long lastInputPulseAt;
+     unsinged long lastOutputPulseAt;
+     unsinged long inputPulsePeriod;
+     unsinged long nextOutputPulseAt;
+     bool isOverThreshold;
+     unsigned long threshold;
 //Bike State
 byte resState;
 
@@ -40,6 +46,13 @@ void setup()
   Serial.begin(115200);
   pulse_was_generated = false;
   Serial.println ("startup");
+  
+  lastInputPulseAt = 0;
+  inputPulsePeriod = 9999999;
+  nextOutputPulse = 9999999;  
+  
+  threshold = 364;
+  isOverThreshold = false;
 }
  
 void relay_pulse(){
@@ -47,55 +60,50 @@ void relay_pulse(){
     digitalWrite(RELAY_PIN, HIGH); // pull-down
     delay(5);
     digitalWrite(RELAY_PIN, LOW); // pull-down
+    
+    lastOutputPulseAt = millis();
+    
     Serial.println("Pulse send");
+}
+
+boolean handle_pulse(){
+
+  boolean event;
+  int pulse_now_generated = !digitalRead(PULSE_PIN); // pin low -> pressed
+
+  event = pulse_now_generated && !pulse_was_generated;
+  pulse_was_generated = pulse_now_generated;
+  return event;
 }
 
 void loop()
 {
-     sw = millis();
-     sw.Start();
+     var now = millis();
 
-     long lastInputPulseAt = 0;
-     long inputPulsePeriod = long.MaxValue;
-     long nextOutputPulseAt = long.MaxValue;
-     
-     bool firstPulse = true;
-     
-     while (true)
+     if (handle_pulse())
      {
-          var millis = sw.ElapsedMilliseconds;
-          
-          if (HandlePulse())
-          {
-                Console.WriteLine("IN");
+           inputPulsePeriod = now - lastInputPulseAt;
+           lastInputPulseAt = now;
+           
+           bool oldIsOverThreshold = isOverThreshold;
+           isOverThreshold = inputPulsePeriod <= threshold;
+
+           if (!isOverThreshold)
+           {
+                if(oldIsOverThreshold == true && isOverThreshold == false) return;
                 
-                var currentInputPulseAt = millis;
-                inputPulsePeriod = currentInputPulseAt - lastInputPulseAt;
-                lastInputPulseAt = currentInputPulseAt;
-
-                if (inputPulsePeriod > 250)
-                {
-                     Console.WriteLine("Going back to normal");
-                     break;
-                }
-
-                // Ensure first pulse is passed immediately
-                if (firstPulse)
-                {
-                     nextOutputPulseAt = millis;
-                     firstPulse = false;
-                }
-          }
-          
-          if (millis >= nextOutputPulseAt)
-          {
                 relay_pulse();
-                nextOutputPulseAt = millis + 250;
-          }
-          
-          // May want to add a delay here (if needed)
+                return;
+           }
+           
+           nextOutputPulseAt = lastOutputPulse + threshold;
      }
-     
+
+     if (isOverThreshold && now >= nextOutputPulseAt)
+     {
+           relay_pulse();
+           nextOutputPulseAt = now + threshold;
+     }
 }
 
 bool _pulsePrev = false;
@@ -109,9 +117,3 @@ public bool HandlePulse()
      return result;
 }
 
-
-public bool IsPinLow()
-{
-     var m = sw.ElapsedMilliseconds % 200; // assume input pulses every 1/5 sec
-     return m >= 0 && m <= 50;
-}
