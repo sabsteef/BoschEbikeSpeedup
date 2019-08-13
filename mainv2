@@ -1,6 +1,52 @@
-void Main()
+/*
+ Hardware:
+ - Arduino Nano (Compatible board)
+ Optional:
+ -
+ Software:
+ - Arduino 1.8.10
+ Arduino Pin Mapping:
+ - 00 = Serial RX USB Serial
+ - 01 = Serial TX USB Serial
+ - 02 = Pulse Receiver ( connect to the speed wire)
+ - 03 = Pulse Send ( connect to the engine)
+ 
+*/
+
+// Definitions
+#define PULSE_PIN        2  // Button
+#define RELAY_PIN        3  // Button
+#define DELAY            5  // Delay per loop in ms
+
+
+boolean pulse_was_generated; // previous state
+boolean raising_edge;
+
+// timer settings
+unsigned long startTime;
+unsigned long endTime;
+unsigned long duration;
+byte timerRunning;
+
+//Bike State
+byte resState;
+
+void setup()
 {
-     sw = new Stopwatch();
+  pinMode(PULSE_PIN, INPUT);
+  digitalWrite(PULSE_PIN, HIGH); // pull-up
+  pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, LOW); // pull-down
+  Serial.begin(115200);
+  pulse_was_generated = false;
+  Serial.println ("startup");
+}
+ 
+
+
+void loop()
+{
+     sw = millis();
      sw.Start();
 
      long lastInputPulseAt = 0;
