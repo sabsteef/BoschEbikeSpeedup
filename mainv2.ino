@@ -20,22 +20,21 @@
 
 
 boolean pulse_was_generated; // previous state
-boolean raising_edge;
+//boolean pulseNow;
 
 // timer settings
-unsigned long startTime;
-unsigned long endTime;
-unsigned long duration;
-byte timerRunning;
+unsigned long lastInputPulseAt;
+unsigned long lastOutputPulseAt;
+unsigned long lastOutputPulse;
+unsigned long inputPulsePeriod;
+unsigned long nextOutputPulseAt;
+unsigned long nextOutputPulse;
 
-     unsinged long lastInputPulseAt;
-     unsinged long lastOutputPulseAt;
-     unsinged long inputPulsePeriod;
-     unsinged long nextOutputPulseAt;
-     bool isOverThreshold;
-     unsigned long threshold;
 //Bike State
-byte resState;
+bool isOverThreshold;
+unsigned long threshold;
+unsigned long now;
+ bool _pulsePrev = false;
 
 void setup()
 {
@@ -54,7 +53,17 @@ void setup()
   threshold = 364;
   isOverThreshold = false;
 }
- 
+
+
+boolean HandlePulse()
+{
+  boolean event;
+  int pulse_now_generated = !digitalRead(PULSE_PIN); // pin low -> pressed
+
+  event = pulse_now_generated && !pulse_was_generated;
+  pulse_was_generated = pulse_now_generated;
+  return event;
+}
 void relay_pulse(){
   unsigned long duration;
     digitalWrite(RELAY_PIN, HIGH); // pull-down
@@ -78,8 +87,7 @@ boolean handle_pulse(){
 
 void loop()
 {
-     var now = millis();
-
+     now = millis();
      if (handle_pulse())
      {
            inputPulsePeriod = now - lastInputPulseAt;
@@ -93,27 +101,18 @@ void loop()
                 if(oldIsOverThreshold == true && isOverThreshold == false) return;
                 
                 relay_pulse();
+                Serial.println ("normalmodus");
                 return;
            }
            
            nextOutputPulseAt = lastOutputPulse + threshold;
      }
-
+   
      if (isOverThreshold && now >= nextOutputPulseAt)
      {
            relay_pulse();
            nextOutputPulseAt = now + threshold;
+                      Serial.println ("nextOutputPulseAt");
+           Serial.print (nextOutputPulseAt);
      }
 }
-
-bool _pulsePrev = false;
-
-public bool HandlePulse()
-{
-     bool result = false;
-     bool pulseNow = IsPinLow();
-     result = pulseNow && !_pulsePrev;
-     _pulsePrev = pulseNow;
-     return result;
-}
-
