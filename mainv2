@@ -42,7 +42,13 @@ void setup()
   Serial.println ("startup");
 }
  
-
+void relay_pulse(){
+  unsigned long duration;
+    digitalWrite(RELAY_PIN, HIGH); // pull-down
+    delay(5);
+    digitalWrite(RELAY_PIN, LOW); // pull-down
+    Serial.println("Pulse send");
+}
 
 void loop()
 {
@@ -83,7 +89,7 @@ void loop()
           
           if (millis >= nextOutputPulseAt)
           {
-                Console.WriteLine("OUT");
+                relay_pulse();
                 nextOutputPulseAt = millis + 250;
           }
           
