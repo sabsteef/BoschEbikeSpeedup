@@ -1,10 +1,13 @@
 /*
+ Author:
+ - Stefan Ringelberg (Stefan.Ringelberg@Gmail.com)
  Hardware:
  - Arduino Nano (Compatible board)
  Optional:
  -
  Software:
  - Arduino 1.8.10
+
  Arduino Pin Mapping:
  - 00 = Serial RX USB Serial
  - 01 = Serial TX USB Serial
@@ -12,32 +15,37 @@
  - 03 = Pulse Send ( connect to the engine)
  
 */
+#include <Chrono.h> // Control Multitasking
+
 
 // Definitions
 #define PULSE_PIN        2  // Button
 #define RELAY_PIN        3  // Button
 #define DELAY            5  // Delay per loop in ms
 
+// Instantiate Chronos treats
+Chrono chronoA; 
+Chrono chronoB; 
+
 
 boolean pulse_was_generated; // previous state
-//boolean pulseNow;
+boolean raising_edge;
 
 // timer settings
-unsigned long lastInputPulseAt;
-unsigned long lastOutputPulseAt;
-unsigned long lastOutputPulse;
-unsigned long inputPulsePeriod;
-unsigned long nextOutputPulseAt;
-unsigned long nextOutputPulse;
+unsigned long startTime;
+unsigned long endTime;
+unsigned long duration;
+unsigned long Stop;
+unsigned long duration1;
+unsigned long Switch;
+byte timerRunning;
 
 //Bike State
-bool isOverThreshold;
-unsigned long threshold;
-unsigned long now;
- bool _pulsePrev = false;
+byte resState;
 
 void setup()
 {
+  
   pinMode(PULSE_PIN, INPUT);
   digitalWrite(PULSE_PIN, HIGH); // pull-up
   pinMode(RELAY_PIN, OUTPUT);
@@ -45,74 +53,79 @@ void setup()
   Serial.begin(115200);
   pulse_was_generated = false;
   Serial.println ("startup");
+  Switch = 400; //hold at 20km showing 17,2
   
-  lastInputPulseAt = 0;
-  inputPulsePeriod = 9999999;
-  nextOutputPulse = 9999999;  
-  
-  threshold = 364;
-  isOverThreshold = false;
 }
+ 
 
 
-boolean HandlePulse()
-{
+
+
+         
+boolean handle_pulse(){
   boolean event;
-  int pulse_now_generated = !digitalRead(PULSE_PIN); // pin low -> pressed
-
-  event = pulse_now_generated && !pulse_was_generated;
-  pulse_was_generated = pulse_now_generated;
+   int pulse_now_generated = !digitalRead(PULSE_PIN); // pin low -> pressed
+   event = pulse_now_generated && !pulse_was_generated;
+   pulse_was_generated = pulse_now_generated;
   return event;
 }
+
 void relay_pulse(){
   unsigned long duration;
     digitalWrite(RELAY_PIN, HIGH); // pull-down
-    delay(5);
+    delay(1);
     digitalWrite(RELAY_PIN, LOW); // pull-down
-    
-    lastOutputPulseAt = millis();
-    
     Serial.println("Pulse send");
-}
-
-boolean handle_pulse(){
-
-  boolean event;
-  int pulse_now_generated = !digitalRead(PULSE_PIN); // pin low -> pressed
-
-  event = pulse_now_generated && !pulse_was_generated;
-  pulse_was_generated = pulse_now_generated;
-  return event;
 }
 
 void loop()
 {
-     now = millis();
-     if (handle_pulse())
-     {
-           inputPulsePeriod = now - lastInputPulseAt;
-           lastInputPulseAt = now;
-           
-           bool oldIsOverThreshold = isOverThreshold;
-           isOverThreshold = inputPulsePeriod <= threshold;
-
-           if (!isOverThreshold)
-           {
-                if(oldIsOverThreshold == true && isOverThreshold == false) return;
-                
-                relay_pulse();
-                Serial.println ("normalmodus");
-                return;
+    if ( chronoA.hasPassed(1) ) {
+     chronoA.restart(); 
+     boolean raising_edge = handle_pulse();
+     
+      if (timerRunning == 1 && raising_edge == 1){
+          endTime = millis();
+          timerRunning = 0;
+          duration1 = endTime - startTime;
+          Serial.println ();
+          Serial.print ("button press time in milliseconds: ");
+          Serial.println (duration1);
+          
+          if (duration1 <= Switch && Stop !=1 ){
+            //duration = duration1 + 600;
+            duration = 500; // set to 17,2
            }
-           
-           nextOutputPulseAt = lastOutputPulse + threshold;
+          else{
+            if (duration != 500){
+              duration = duration1;
+            }
+            else{
+              Stop = 1;
+            }
+          }
+          if (duration >= 4000){
+            duration = 0;
+            Serial.print ("Stop bike ");
+          }
+
      }
-   
-     if (isOverThreshold && now >= nextOutputPulseAt)
-     {
-           relay_pulse();
-           nextOutputPulseAt = now + threshold;
-                      Serial.println ("nextOutputPulseAt");
-           Serial.print (nextOutputPulseAt);
+
+     if (timerRunning == 0 && raising_edge == 1){
+          startTime = millis();
+          timerRunning = 1;
      }
+     if ( chronoB.hasPassed(duration) ) {
+          if (duration != 0){
+            Serial.print ("duration1 ");
+           Serial.println (duration1);
+               Serial.print ("duration ");
+           Serial.println (duration);
+          relay_pulse();
+          duration = 0;
+          Stop =0;
+          chronoB.restart();
+          }
+     }
+   }
 }
