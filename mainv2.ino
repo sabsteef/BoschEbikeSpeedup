@@ -3,8 +3,6 @@
  - Stefan Ringelberg (Stefan.Ringelberg@Gmail.com)
  Hardware:
  - Arduino Nano (Compatible board)
- Optional:
- -
  Software:
  - Arduino 1.8.10
 
@@ -17,7 +15,6 @@
 */
 #include <Chrono.h> // Control Multitasking
 
-
 // Definitions
 #define PULSE_PIN        2  // Button
 #define RELAY_PIN        3  // Button
@@ -26,7 +23,6 @@
 // Instantiate Chronos treats
 Chrono chronoA; 
 Chrono chronoB; 
-
 
 boolean pulse_was_generated; // previous state
 boolean raising_edge;
@@ -45,7 +41,6 @@ byte resState;
 
 void setup()
 {
-  
   pinMode(PULSE_PIN, INPUT);
   digitalWrite(PULSE_PIN, HIGH); // pull-up
   pinMode(RELAY_PIN, OUTPUT);
@@ -54,14 +49,8 @@ void setup()
   pulse_was_generated = false;
   Serial.println ("startup");
   Switch = 400; //hold at 20km showing 17,2
-  
 }
- 
-
-
-
-
-         
+     
 boolean handle_pulse(){
   boolean event;
    int pulse_now_generated = !digitalRead(PULSE_PIN); // pin low -> pressed
